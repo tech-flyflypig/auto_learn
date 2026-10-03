@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "超星自动播放助手",
+  "version": "1.3.0",
+  "description": "自动播放超星学习通课程，自动答题(AI+本地题库+运行时字体解码)，支持章节测验/卡片测验/考试",
+  "permissions": ["storage"],
+  "optional_host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.chaoxing.com/*",
+        "*://mooc1.chaoxing.com/*",
+        "*://mooc1-1.chaoxing.com/*",
+        "*://mooc1-2.chaoxing.com/*"
+      ],
+      "js": ["inject.js"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.chaoxing.com/*",
+        "*://mooc1.chaoxing.com/*",
+        "*://mooc1-1.chaoxing.com/*",
+        "*://mooc1-2.chaoxing.com/*"
+      ],
+      "js": ["cxsecret_map.js", "font_decode.js", "quiz.js", "exam.js"],
+      "all_frames": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.chaoxing.com/*",
+        "*://mooc1.chaoxing.com/*",
+        "*://mooc1-1.chaoxing.com/*",
+        "*://mooc1-2.chaoxing.com/*"
+      ],
+      "js": ["content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

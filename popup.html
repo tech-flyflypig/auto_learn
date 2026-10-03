@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 240px;
+      padding: 16px;
+      font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+    .header {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .label {
+      color: #555;
+    }
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .slider {
+      background: #4caf50;
+    }
+    input:checked + .slider::before {
+      transform: translateX(20px);
+    }
+    select {
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+    .settings-link {
+      display: block;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #1a73e8;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">超星自动播放助手</div>
+  <div class="row">
+    <span class="label">自动播放</span>
+    <label class="switch">
+      <input type="checkbox" id="toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="row">
+    <span class="label">播放倍速</span>
+    <select id="speed">
+      <option value="1">1x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+      <option value="3">3x</option>
+      <option value="4">4x</option>
+    </select>
+  </div>
+  <div class="row">
+    <span class="label">自动答题</span>
+    <label class="switch">
+      <input type="checkbox" id="answerToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="status" id="status">已关闭</div>
+  <a class="settings-link" id="openOptions">答题设置（AI接口 / 题库）</a>
+  <script src="popup.js"></script>
+</body>
+</html>

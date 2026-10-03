@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>超星自动答题 - 设置</title>
+  <style>
+    body {
+      width: 520px;
+      padding: 20px 24px;
+      font-family: -apple-system, "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      color: #333;
+    }
+    h2 { font-size: 17px; margin: 0 0 16px; }
+    .section {
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .section h3 { font-size: 14px; margin: 0 0 10px; color: #1a73e8; }
+    .row { margin-bottom: 10px; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
+    input[type="text"], input[type="password"], input[type="number"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .hint { font-size: 12px; color: #999; margin-top: 3px; }
+    .inline { display: flex; align-items: center; gap: 8px; }
+    .inline input[type="checkbox"] { width: auto; }
+    button {
+      padding: 7px 18px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .primary { background: #1a73e8; color: #fff; }
+    .plain { background: #f1f3f4; color: #333; margin-left: 8px; }
+    #status { margin-top: 8px; font-size: 13px; min-height: 18px; }
+    #status.ok { color: #188038; }
+    #status.err { color: #d93025; }
+    .bank-row { display: flex; align-items: center; justify-content: space-between; }
+    .bank-count { font-size: 13px; color: #666; }
+  </style>
+</head>
+<body>
+  <h2>超星自动答题设置</h2>
+
+  <div class="section">
+    <h3>AI 接口（OpenAI 兼容格式）</h3>
+    <div class="row">
+      <label>接口地址（Base URL，填到 /v1 为止，如 https://api.openai.com/v1）</label>
+      <input type="text" id="aiBaseUrl" placeholder="https://api.openai.com/v1">
+    </div>
+    <div class="row">
+      <label>API Key</label>
+      <input type="password" id="aiApiKey" placeholder="sk-...">
+    </div>
+    <div class="row">
+      <label>模型名称</label>
+      <input type="text" id="aiModel" placeholder="gpt-4o-mini">
+    </div>
+    <div class="row">
+      <button class="plain" id="btnTest">测试连接</button>
+      <span class="hint" id="testResult"></span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>答题行为</h3>
+    <div class="row inline">
+      <input type="checkbox" id="autoSubmit" checked>
+      <label for="autoSubmit" style="margin:0">自动提交（默认开启；关闭则只填充答案，由你手动确认提交）</label>
+    </div>
+    <div class="row">
+      <label>最快交卷时间（分钟，从开考时间算起；0 = 按题数自动：每题 15 秒、最少 3 分钟）</label>
+      <input type="number" id="minSubmitMinutes" min="0" max="180" step="1" value="0">
+    </div>
+    <div class="row">
+      <label>最晚交卷：距考试结束剩余（分钟）时强制交卷</label>
+      <input type="number" id="submitSafetyMinutes" min="1" max="60" step="1" value="3">
+      <div class="hint">最快时间从进入考试（开考）算起，不足则倒计时等待，浮窗显示剩余等待时间；考试剩余时间不足"最晚"值时（无论等待中还是作答中）都会跳过等待立即交卷。考试无固定时长时只按最快时间控制。</div>
+    </div>
+    <div class="hint">不确定的题目也会按AI最佳猜测作答、不留空（错题不入库，重做时自动用题库纠错）。</div>
+  </div>
+
+  <div class="section">
+    <h3>本地题库</h3>
+    <div class="bank-row">
+      <span class="bank-count" id="bankCount">0 题</span>
+      <span>
+        <button class="plain" id="btnExport">导出</button>
+        <button class="plain" id="btnImport">导入</button>
+        <button class="plain" id="btnClear">清空</button>
+      </span>
+    </div>
+    <div class="hint">提交测验后自动从结果页收割正确答案入库；下次遇到相同题目直接秒答，不再调用 AI。</div>
+    <input type="file" id="fileImport" accept=".json" style="display:none">
+  </div>
+
+  <button class="primary" id="btnSave">保存设置</button>
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
