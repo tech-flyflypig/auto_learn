@@ -1,32 +1,55 @@
-var toggle = document.getElementById("toggle");
-var speed = document.getElementById("speed");
-var answerToggle = document.getElementById("answerToggle");
-var statusEl = document.getElementById("status");
+var $ = function (id) { return document.getElementById(id); };
+
+var CONFIG_KEY = "cx_answer_config";
+
+var toggle = $("toggle");
+var speed = $("speed");
+var answerToggle = $("answerToggle");
+var statusEl = $("status");
+var cfgCache = {};
 
 function refreshStatus() {
-  chrome.storage.local.get(["autoPlayEnabled", "autoAnswerEnabled", "cx_answer_config"], function (r) {
-    var play = !!r.autoPlayEnabled;
-    var answer = !!r.autoAnswerEnabled;
-    var cfg = r.cx_answer_config || {};
-    var aiReady = !!(cfg.aiBaseUrl && cfg.aiApiKey);
-    var parts = [];
-    parts.push(play ? "播放:开" : "播放:关");
-    if (answer) {
-      parts.push("答题:开" + (aiReady ? "(AI已配置)" : "(AI未配置,仅题库)"));
-    } else {
-      parts.push("答题:关");
-    }
-    parts.push("测验+考试");
-    statusEl.textContent = parts.join(" ");
-  });
+  var play = toggle.checked;
+  var answer = answerToggle.checked;
+  var aiReady = !!(cfgCache.aiBaseUrl && cfgCache.aiApiKey);
+  var parts = [];
+  parts.push(play ? "播放:开" : "播放:关");
+  if (answer) {
+    parts.push("答题:开" + (aiReady ? "(AI已配置)" : "(AI未配置,仅题库)"));
+  } else {
+    parts.push("答题:关");
+  }
+  parts.push("测验+考试");
+  statusEl.textContent = parts.join(" ");
 }
 
-chrome.storage.local.get(["autoPlayEnabled", "playbackSpeed", "autoAnswerEnabled"], function (result) {
-  toggle.checked = !!result.autoPlayEnabled;
-  speed.value = result.playbackSpeed || "1";
-  answerToggle.checked = !!result.autoAnswerEnabled;
-  refreshStatus();
+chrome.storage.local.get(
+  ["autoPlayEnabled", "playbackSpeed", "autoAnswerEnabled", CONFIG_KEY],
+  function (result) {
+    toggle.checked = !!result.autoPlayEnabled;
+    speed.value = result.playbackSpeed || "1";
+    answerToggle.checked = !!result.autoAnswerEnabled;
+    cfgCache = result[CONFIG_KEY] || {};
+    refreshStatus();
+  }
+);
+
+// 设置窗口保存后,实时刷新弹窗里的状态显示
+chrome.storage.onChanged.addListener(function (changes, area) {
+  if (area === "local" && changes[CONFIG_KEY]) {
+    cfgCache = changes[CONFIG_KEY].newValue || {};
+    refreshStatus();
+  }
 });
+
+function openSettings() {
+  chrome.windows.create({
+    url: "settings.html",
+    type: "popup",
+    width: 500,
+    height: 680
+  });
+}
 
 toggle.addEventListener("change", function () {
   chrome.storage.local.set({ autoPlayEnabled: toggle.checked });
@@ -39,21 +62,12 @@ speed.addEventListener("change", function () {
 
 answerToggle.addEventListener("change", function () {
   chrome.storage.local.set({ autoAnswerEnabled: answerToggle.checked });
-  if (answerToggle.checked) {
-    chrome.storage.local.get(["cx_answer_config"], function (r) {
-      var cfg = r.cx_answer_config || {};
-      if (!cfg.aiBaseUrl || !cfg.aiApiKey) {
-        statusEl.textContent = "答题:开(AI未配置,请点下方设置)";
-        chrome.runtime.openOptionsPage();
-      } else {
-        refreshStatus();
-      }
-    });
+  if (answerToggle.checked && !(cfgCache.aiBaseUrl && cfgCache.aiApiKey)) {
+    statusEl.textContent = "答题:开(AI未配置,请填写接口并保存)";
+    openSettings();
   } else {
     refreshStatus();
   }
 });
 
-document.getElementById("openOptions").addEventListener("click", function () {
-  chrome.runtime.openOptionsPage();
-});
+$("openSettings").addEventListener("click", openSettings);

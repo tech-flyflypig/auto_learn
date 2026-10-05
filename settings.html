@@ -2,26 +2,27 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>超星自动答题 - 设置</title>
+  <title>超星自动答题设置</title>
   <style>
     body {
-      width: 520px;
-      padding: 20px 24px;
+      width: 460px;
+      margin: 0;
+      padding: 16px 18px;
       font-family: -apple-system, "Microsoft YaHei", sans-serif;
       font-size: 14px;
       color: #333;
     }
-    h2 { font-size: 17px; margin: 0 0 16px; }
+    h2 { font-size: 16px; margin: 0 0 14px; }
     .section {
       border: 1px solid #e5e5e5;
       border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
     }
     .section h3 { font-size: 14px; margin: 0 0 10px; color: #1a73e8; }
     .row { margin-bottom: 10px; }
     label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
-    input[type="text"], input[type="password"], input[type="number"], select {
+    input[type="text"], input[type="password"], input[type="number"] {
       width: 100%;
       box-sizing: border-box;
       padding: 6px 8px;
@@ -29,18 +30,22 @@
       border-radius: 4px;
       font-size: 13px;
     }
-    .hint { font-size: 12px; color: #999; margin-top: 3px; }
+    .hint { font-size: 12px; color: #999; margin-top: 3px; line-height: 1.5; }
     .inline { display: flex; align-items: center; gap: 8px; }
     .inline input[type="checkbox"] { width: auto; }
+    .inline label { margin: 0; }
     button {
-      padding: 7px 18px;
+      padding: 6px 16px;
       border: none;
       border-radius: 4px;
       font-size: 13px;
       cursor: pointer;
     }
     .primary { background: #1a73e8; color: #fff; }
-    .plain { background: #f1f3f4; color: #333; margin-left: 8px; }
+    .primary:hover { background: #1765cc; }
+    .plain { background: #f1f3f4; color: #333; }
+    .plain:hover { background: #e8eaed; }
+    .plain.danger { background: #fce8e6; color: #d93025; }
     #status { margin-top: 8px; font-size: 13px; min-height: 18px; }
     #status.ok { color: #188038; }
     #status.err { color: #d93025; }
@@ -67,7 +72,7 @@
     </div>
     <div class="row">
       <button class="plain" id="btnTest">测试连接</button>
-      <span class="hint" id="testResult"></span>
+      <span class="hint" id="testResult" style="display:inline-block;vertical-align:middle"></span>
     </div>
   </div>
 
@@ -75,7 +80,7 @@
     <h3>答题行为</h3>
     <div class="row inline">
       <input type="checkbox" id="autoSubmit" checked>
-      <label for="autoSubmit" style="margin:0">自动提交（默认开启；关闭则只填充答案，由你手动确认提交）</label>
+      <label for="autoSubmit">自动提交（默认开启；关闭则只填充答案，由你手动确认提交）</label>
     </div>
     <div class="row">
       <label>最快交卷时间（分钟，从开考时间算起；0 = 按题数自动：每题 15 秒、最少 3 分钟）</label>
@@ -104,8 +109,8 @@
   </div>
 
   <button class="primary" id="btnSave">保存设置</button>
-  <div id="status"></div>
+  <span id="status" style="display:inline-block;vertical-align:middle"></span>
 
-  <script src="options.js"></script>
+  <script src="settings.js"></script>
 </body>
 </html>

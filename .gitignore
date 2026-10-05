@@ -14,3 +14,7 @@ Desktop.ini
 # 临时文件
 *.tmp
 *.log
+
+# 本地AI工具产物
+.claude/
+.context/

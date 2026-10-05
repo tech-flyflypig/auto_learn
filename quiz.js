@@ -433,8 +433,13 @@
     });
 
     if (entries.length) {
-      chrome.runtime.sendMessage({ type: "BANK_SAVE", entries: entries }, function () {
-        log("收割完成, 入库 " + entries.length + " 题");
+      chrome.runtime.sendMessage({ type: "BANK_SAVE", entries: entries }, function (resp) {
+        if (chrome.runtime.lastError || !resp || !resp.ok) {
+          var reason = (chrome.runtime.lastError && chrome.runtime.lastError.message) || (resp && resp.error) || "无响应";
+          log("入库失败: " + reason);
+          return;
+        }
+        log("收割完成, 入库 " + resp.saved + " 题");
       });
     } else {
       log("结果页未解析出可入库的答案");

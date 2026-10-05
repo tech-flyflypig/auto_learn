@@ -3,19 +3,31 @@ var $ = function (id) { return document.getElementById(id); };
 var CONFIG_KEY = "cx_answer_config";
 var BANK_KEY = "cx_bank";
 
-function loadConfig() {
-  chrome.storage.local.get([CONFIG_KEY, BANK_KEY], function (d) {
-    var c = d[CONFIG_KEY] || {};
-    $("aiBaseUrl").value = c.aiBaseUrl || "";
-    $("aiApiKey").value = c.aiApiKey || "";
-    $("aiModel").value = c.aiModel || "";
-    $("autoSubmit").checked = c.autoSubmit !== false;
-    $("minSubmitMinutes").value = isFinite(parseFloat(c.minSubmitMinutes)) ? c.minSubmitMinutes : 0;
-    $("submitSafetyMinutes").value = isFinite(parseFloat(c.submitSafetyMinutes)) && parseFloat(c.submitSafetyMinutes) >= 1 ? c.submitSafetyMinutes : 3;
-    var bank = d[BANK_KEY] || {};
-    $("bankCount").textContent = Object.keys(bank).length + " 题";
-  });
+function readConfig() {
+  return {
+    aiBaseUrl: $("aiBaseUrl").value.trim(),
+    aiApiKey: $("aiApiKey").value.trim(),
+    aiModel: $("aiModel").value.trim() || "gpt-4o-mini",
+    autoSubmit: $("autoSubmit").checked,
+    minSubmitMinutes: parseFloat($("minSubmitMinutes").value) || 0,
+    submitSafetyMinutes: Math.max(1, parseFloat($("submitSafetyMinutes").value) || 3)
+  };
 }
+
+function fillConfig(c) {
+  $("aiBaseUrl").value = c.aiBaseUrl || "";
+  $("aiApiKey").value = c.aiApiKey || "";
+  $("aiModel").value = c.aiModel || "";
+  $("autoSubmit").checked = c.autoSubmit !== false;
+  $("minSubmitMinutes").value = isFinite(parseFloat(c.minSubmitMinutes)) ? c.minSubmitMinutes : 0;
+  $("submitSafetyMinutes").value = isFinite(parseFloat(c.submitSafetyMinutes)) && parseFloat(c.submitSafetyMinutes) >= 1 ? c.submitSafetyMinutes : 3;
+}
+
+chrome.storage.local.get([CONFIG_KEY, BANK_KEY], function (d) {
+  fillConfig(d[CONFIG_KEY] || {});
+  var bank = d[BANK_KEY] || {};
+  $("bankCount").textContent = Object.keys(bank).length + " 题";
+});
 
 function showStatus(text, ok) {
   var el = $("status");
@@ -24,14 +36,7 @@ function showStatus(text, ok) {
 }
 
 $("btnSave").addEventListener("click", function () {
-  var config = {
-    aiBaseUrl: $("aiBaseUrl").value.trim(),
-    aiApiKey: $("aiApiKey").value.trim(),
-    aiModel: $("aiModel").value.trim() || "gpt-4o-mini",
-    autoSubmit: $("autoSubmit").checked,
-    minSubmitMinutes: parseFloat($("minSubmitMinutes").value) || 0,
-    submitSafetyMinutes: Math.max(1, parseFloat($("submitSafetyMinutes").value) || 3)
-  };
+  var config = readConfig();
   chrome.storage.local.set({ [CONFIG_KEY]: config }, function () {
     // 为自定义 AI 接口域名申请跨域权限(service worker fetch 需要)
     if (config.aiBaseUrl && /^https?:\/\//.test(config.aiBaseUrl)) {
@@ -46,7 +51,6 @@ $("btnSave").addEventListener("click", function () {
     } else {
       showStatus("已保存", true);
     }
-    refreshBankCount();
   });
 });
 
@@ -54,12 +58,7 @@ $("btnTest").addEventListener("click", function () {
   // 先保存再测试, 保证测试的是当前输入的配置
   $("btnTest").disabled = true;
   $("testResult").textContent = "测试中...";
-  var config = {
-    aiBaseUrl: $("aiBaseUrl").value.trim(),
-    aiApiKey: $("aiApiKey").value.trim(),
-    aiModel: $("aiModel").value.trim() || "gpt-4o-mini"
-  };
-  chrome.storage.local.set({ [CONFIG_KEY]: Object.assign(loadCurrent(), config) }, function () {
+  chrome.storage.local.set({ [CONFIG_KEY]: readConfig() }, function () {
     chrome.runtime.sendMessage({ type: "AI_TEST" }, function (resp) {
       $("btnTest").disabled = false;
       if (chrome.runtime.lastError || !resp) {
@@ -75,19 +74,26 @@ $("btnTest").addEventListener("click", function () {
   });
 });
 
-function loadCurrent() {
-  return {
-    aiBaseUrl: $("aiBaseUrl").value.trim(),
-    aiApiKey: $("aiApiKey").value.trim(),
-    aiModel: $("aiModel").value.trim(),
-    autoSubmit: $("autoSubmit").checked,
-    minSubmitMinutes: parseFloat($("minSubmitMinutes").value) || 0,
-    submitSafetyMinutes: Math.max(1, parseFloat($("submitSafetyMinutes").value) || 3)
-  };
+// 两步确认清空,避免误触
+var clearArmed = false;
+var clearTimer = null;
+function resetClear() {
+  clearArmed = false;
+  clearTimeout(clearTimer);
+  var btn = $("btnClear");
+  btn.textContent = "清空";
+  btn.classList.remove("danger");
 }
-
 $("btnClear").addEventListener("click", function () {
-  if (!confirm("确定清空本地题库？此操作不可恢复。")) return;
+  if (!clearArmed) {
+    clearArmed = true;
+    var btn = $("btnClear");
+    btn.textContent = "确认清空?";
+    btn.classList.add("danger");
+    clearTimer = setTimeout(resetClear, 3000);
+    return;
+  }
+  resetClear();
   chrome.runtime.sendMessage({ type: "BANK_CLEAR" }, function () {
     refreshBankCount();
     showStatus("题库已清空", true);
@@ -120,7 +126,12 @@ $("fileImport").addEventListener("change", function () {
       });
       chrome.runtime.sendMessage({ type: "BANK_SAVE", entries: entries }, function (resp) {
         refreshBankCount();
-        showStatus("导入 " + (resp && resp.saved || 0) + " 题", true);
+        if (chrome.runtime.lastError || !resp || !resp.ok) {
+          var reason = (chrome.runtime.lastError && chrome.runtime.lastError.message) || (resp && resp.error) || "无响应";
+          showStatus("导入失败: " + reason, false);
+          return;
+        }
+        showStatus("导入 " + resp.saved + " 题", true);
       });
     } catch (e) {
       showStatus("导入失败: 文件不是合法JSON", false);
@@ -134,5 +145,3 @@ function refreshBankCount() {
     if (resp) $("bankCount").textContent = resp.count + " 题";
   });
 }
-
-loadConfig();

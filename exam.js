@@ -564,9 +564,15 @@
     });
 
     if (entries.length) {
-      chrome.runtime.sendMessage({ type: "BANK_SAVE", entries: entries }, function () {
-        log("收割完成, 入库 " + entries.length + " 题");
-        showStatus("收割完成,入库 " + entries.length + " 题 ✓", 10000);
+      chrome.runtime.sendMessage({ type: "BANK_SAVE", entries: entries }, function (resp) {
+        if (chrome.runtime.lastError || !resp || !resp.ok) {
+          var reason = (chrome.runtime.lastError && chrome.runtime.lastError.message) || (resp && resp.error) || "无响应";
+          log("入库失败: " + reason);
+          showStatus("题库入库失败: " + reason, 8000);
+          return;
+        }
+        log("收割完成,入库 " + resp.saved + " 题");
+        showStatus("收割完成,入库 " + resp.saved + " 题 ✓", 10000);
       });
     } else {
       log("结果页未解析出正确答案(可能未公布)");

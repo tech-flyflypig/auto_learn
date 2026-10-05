@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "超星自动播放助手",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "自动播放超星学习通课程，自动答题(AI+本地题库+运行时字体解码)，支持章节测验/卡片测验/考试",
-  "permissions": ["storage"],
+  "permissions": ["storage", "unlimitedStorage"],
   "optional_host_permissions": ["*://*/*"],
   "background": {
     "service_worker": "background.js"
   },
-  "options_page": "options.html",
+  "options_page": "settings.html",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
