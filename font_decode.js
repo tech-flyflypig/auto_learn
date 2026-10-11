@@ -4,10 +4,26 @@
 // -> 用canvas渲染每个字形 -> 与参考字体的常用字渲染做相似度匹配 -> 生成映射表。
 // 生成的映射写入 window.__CX_RUNTIME_MAP, quiz.js 的 decodeText 会合并使用。
 // 高置信度(>=0.6)的映射才启用, 低分保持原字(部分解码仍大幅提升AI可读性)。
+// 映射按字体内容哈希缓存到 chrome.storage: 同一字体跨页面直接复用, 不再逐页重解;
+// 仅在有有效解码结果时写缓存(空结果可能是字体未就绪等环境异常, 留待下页重试)。
 (function () {
   "use strict";
 
   var MIN_SCORE = 0.55;
+
+  // ---------- 解码结果缓存 ----------
+  var CACHE_KEY = "cx_font_map_cache";
+  var CACHE_VER = 1;
+
+  // FNV-1a 32位 + 字节长度: 字体变一位哈希即变, 作为缓存键足够
+  function fontHash(bytes) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < bytes.length; i++) {
+      h ^= bytes[i];
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16) + "-" + bytes.length;
+  }
 
   // 常用汉字候选集(约2100字, 覆盖日常与课程高频字, 含两代反爬字体已验证的真实字)
   var COMMON_CHARS = (
@@ -160,11 +176,27 @@
   // 参考字体: 多字体交叉提高稳健性(不同字形风格各有命中机会)
   var REF_FONTS = ["Microsoft YaHei", "SimSun", "SimHei", "KaiTi"];
 
-  function buildRuntimeMap() {
+  async function buildRuntimeMap() {
     try {
       if (!hasCxsecretFont()) return;
       var bytes = extractFontBytes();
       if (!bytes) { log("未找到内嵌字体"); return; }
+      var hash = fontHash(bytes);
+
+      // 缓存命中: 同一字体直接复用上次解码结果, 跳过整轮字形比对
+      try {
+        var stored = await chrome.storage.local.get(CACHE_KEY);
+        var cache = stored && stored[CACHE_KEY];
+        if (cache && cache.ver === CACHE_VER && cache.hash === hash &&
+            cache.map && Object.keys(cache.map).length > 0) {
+          window.__CX_RUNTIME_MAP = cache.map;
+          log("字体缓存命中(" + hash + "), 复用 " + Object.keys(cache.map).length + " 条映射, 跳过解码");
+          return;
+        }
+      } catch (e) {
+        log("读取缓存失败, 走完整解码:", e && e.message);
+      }
+
       var codepoints = parseCmap(bytes);
       if (!codepoints || !codepoints.length) { log("cmap解析失败"); return; }
       log("字体码点数: " + codepoints.length + ", 开始字形匹配...");
@@ -204,6 +236,19 @@
       }
       window.__CX_RUNTIME_MAP = map;
       log("解码完成: " + solved + "/" + codepoints.length + " 个字形 (阈值" + MIN_SCORE + ")");
+      // 仅在有有效结果时写缓存, 避免把环境异常导致的空映射固化
+      if (solved > 0) {
+        chrome.storage.local.set({
+          [CACHE_KEY]: {
+            ver: CACHE_VER,
+            hash: hash,
+            map: map,
+            solved: solved,
+            total: codepoints.length,
+            ts: Date.now()
+          }
+        });
+      }
     } catch (e) {
       log("解码异常:", e && e.message);
     } finally {
